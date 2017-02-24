@@ -1,0 +1,34 @@
+EXECUTED_PROGRAM
+
+ret > ExitSuccess
+out > 123.4 = 123.400000
+out > -42.9 = -42.900000
+out > NaN   = NaN
+out > Inf   = Infinity
+out > -Inf  = -Infinity
+out > Inf == Inf = true
+out > NaN == NaN = true
+out > NaN == -NaN = true
+out > 0.0 == -0.0 = false
+out > isZero  0.0 = pos
+out > isZero -0.0 = neg
+out > isZero  1.0 = nonzero
+out > NaN =N= NaN  = false
+out > 0.0 =N= -0.0 = true
+out > 0.0 =N= 12.0 = false
+out > NaN  < -Inf = false
+out > -Inf < NaN  = true
+out > 0.0  < -0.0 = false
+out > -0.0 < 0.0  = false
+out > NaN  < NaN  = false
+out > -NaN < -NaN = false
+out > NaN  < -NaN = false
+out > -NaN < NaN  = false
+out > NaN  < -5.0 = true
+out > -5.0 < NaN  = false
+out > e                   = 2.718282
+out > sin (asin 0.6)      = 0.600000
+out > cos (acos 0.6)      = 0.600000
+out > tan (atan 0.4)      = 0.400000
+out > tan (atan2 0.4 1.0) = 0.400000
+out >

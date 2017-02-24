@@ -1,0 +1,238 @@
+name:            agda-uhc
+version:         2.5.3
+cabal-version:   >= 1.10
+build-type:      Simple
+license:         OtherLicense
+license-file:    LICENSE
+author:          Philipp Hausmann, Ulf Norell
+maintainer:      Philipp Hausmann <philipp.hausmann@314.ch>
+bug-reports:     https://github.com/agda/agda-uhc/issues
+category:        Dependent types
+synopsis:        A UHC backend for Agda
+description:
+  This adds a UHC (Utrecht Haskell Compiler) backend to Agda.
+tested-with:        GHC == 7.6.3
+                    GHC == 7.8.4
+                    GHC == 7.10.3
+                    GHC == 8.0.2
+
+extra-source-files: CHANGELOG.md
+                    README.md
+                    src/undefined.h
+
+data-dir:           data
+data-files:         uhc-agda-base/LICENSE
+                    uhc-agda-base/src/UHC/Agda/*.hs
+                    uhc-agda-base/src/UHC/Agda/double.c
+                    uhc-agda-base/src/UHC/Agda/double.h
+                    uhc-agda-base/uhc-agda-base.cabal
+
+source-repository head
+  type:     git
+  location: https://github.com/agda/agda-uhc.git
+
+flag cpphs
+  default:     True
+  manual:      True
+  description: Use cpphs instead of cpp.
+
+executable agda-uhc
+  hs-source-dirs:   src
+  include-dirs:     src
+
+  if flag(cpphs)
+    -- We don't write an upper bound for cpphs because the
+    -- `build-tools` field can not be modified in Hackage.
+    build-tools: cpphs >= 1.20.2
+    ghc-options: -pgmP cpphs -optP --cpp
+
+  -- we use the CPP processor to conditionally import the UHC Light
+  -- modules. If UHC Light is not present, we instead create dummy
+  -- definitions, see module Agda.Compiler.UHC.Bridge.
+  cpp-options:    -DUHC_BACKEND
+
+  if os(windows)
+    build-depends:  Win32 >= 2.2 && < 2.4
+
+  build-depends:  base >= 4.6.0.1 && < 4.10
+                , Agda == 2.5.3
+                , binary >= 0.7.2.1 && < 0.9
+                , bytestring >= 0.10.0.2 && < 0.11
+                , containers >= 0.5.0.0 && < 0.6
+                , directory >= 1.2.0.1 && < 1.4
+                , filepath >= 1.3.0.1 && < 1.5
+                , mtl >= 2.1.1 && <= 2.1.3.1 || >= 2.2.1 && < 2.3
+                , shuffle >= 0.1.3.3
+                , time >= 1.4.0.1 && < 1.7
+                , uhc-light >= 1.1.9.5 && < 1.2
+                , uhc-util >= 0.1.6.7 && < 0.1.7
+                , uulib >= 0.9.20
+
+  if impl(ghc < 7.8)
+    build-depends: base-orphans >= 0.3.1 && < 0.5
+
+  if impl(ghc < 7.10)
+    build-depends: void >= 0.5.4 && < 0.9
+
+  -- zlib >= 0.6.1 is broken with GHC < 7.10.3. See Issue 1518.
+  if impl(ghc < 7.10.3)
+    build-depends: zlib >= 0.4.0.1 && < 0.6.1
+  else
+    build-depends: zlib >= 0.4.0.1 && < 0.7
+
+  if impl(ghc < 8.0)
+    -- provide/emulate `Control.Monad.Fail` and `Data.Semigroups` API
+    -- for pre-GHC8
+    build-depends:  fail == 4.9.*
+                  , semigroups == 0.18.*
+
+  main-is:          Main.hs
+  other-modules: Paths_agda_uhc
+                 Agda.Compiler.UHC.Bridge
+                 Agda.Compiler.UHC.Compiler
+                 Agda.Compiler.UHC.CompileState
+                 Agda.Compiler.UHC.FromAgda
+                 Agda.Compiler.UHC.MagicTypes
+                 Agda.Compiler.UHC.Pragmas.Base
+                 Agda.Compiler.UHC.Pragmas.Parse
+                 Agda.Compiler.UHC.Primitives
+
+  -- Initially, we disable all the warnings.
+  ghc-options: -w
+               -Werror
+
+  -- This option must be the first one after disabling the warnings. See
+  -- Issue #2094.
+  if impl(ghc >= 8.0)
+    ghc-options: -Wunrecognised-warning-flags
+
+  if impl(ghc >= 7.6.3)
+    ghc-options: -fwarn-deprecated-flags
+                 -fwarn-dodgy-exports
+                 -fwarn-dodgy-foreign-imports
+                 -fwarn-dodgy-imports
+                 -fwarn-duplicate-exports
+                 -fwarn-hi-shadowing
+                 -fwarn-identities
+                 -fwarn-incomplete-patterns
+                 -fwarn-missing-fields
+                 -fwarn-missing-methods
+                 -fwarn-missing-signatures
+                 -fwarn-tabs
+                 -fwarn-overlapping-patterns
+                 -fwarn-unrecognised-pragmas
+                 -fwarn-unused-do-bind
+                 -fwarn-warnings-deprecations
+                 -fwarn-wrong-do-bind
+
+  if impl(ghc >= 7.8)
+    ghc-options: -fwarn-empty-enumerations
+                 -fwarn-inline-rule-shadowing
+                 -fwarn-typed-holes
+                 -fwarn-overflowed-literals
+
+  if impl(ghc >= 7.10)
+     ghc-options: -fwarn-unticked-promoted-constructors
+                  -- Enable after removing the support for GHC 7.8.
+                  -- -fwarn-deriving-typeable
+
+  -- This option is deprected in GHC 7.10.1.
+  if impl(ghc >= 7.8) && impl(ghc < 7.10)
+    ghc-options: -fwarn-amp
+
+  -- This option will be removed in GHC 8.0.1.
+  if impl(ghc >= 7.6) && impl(ghc < 8.0)
+    ghc-options: -fwarn-pointless-pragmas
+
+  -- This option will be deprected in GHC 8.0.1.
+  if impl(ghc >= 7.8) && impl(ghc < 8.0)
+    ghc-options: -fwarn-duplicate-constraints
+
+  -- This option will be deprected in GHC 8.0.1.
+  if impl(ghc >= 7.10) && impl(ghc < 8.0)
+    ghc-options: -fwarn-context-quantification
+
+  if impl(ghc >= 8.0)
+    ghc-options: -Wmissing-pattern-synonym-signatures
+                 -Wnoncanonical-monad-instances
+                 -Wnoncanonical-monoid-instances
+                 -Wsemigroup
+                 -Wunused-foralls
+
+  ghc-prof-options: -fprof-auto
+
+  default-language: Haskell2010
+  default-extensions: ConstraintKinds
+                    , DataKinds
+                    , DefaultSignatures
+                    , DeriveFunctor
+                    , DeriveFoldable
+                    , DeriveTraversable
+                    , ExistentialQuantification
+                    , FlexibleContexts
+                    , FlexibleInstances
+                    , FunctionalDependencies
+                    , LambdaCase
+                    , MultiParamTypeClasses
+                    , MultiWayIf
+                    , NamedFieldPuns
+                    , RankNTypes
+                    , RecordWildCards
+                    , ScopedTypeVariables
+                    , StandaloneDeriving
+                    , TupleSections
+                    , TypeSynonymInstances
+
+  ghc-options:  -rtsopts
+
+-- Cabal testsuite integration has some serious bugs, but we
+-- can still make it work. See also:
+-- https://github.com/haskell/cabal/issues/1938
+-- https://github.com/haskell/cabal/issues/2214
+-- https://github.com/haskell/cabal/issues/1953
+--
+-- This test suite should only be run using the Makefile.
+-- The Makefile sets up the required environment,
+-- executing the tests using cabal directly is almost
+-- guarantued to fail. See also Issue 1490.
+test-suite agda-uhc-tests
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test/
+  main-is:          Main.hs
+  other-modules:    Compiler.Tests
+
+  build-depends:  array >= 0.4.0.1 && < 0.6
+                , base >= 4.6.0.1 && < 4.10
+                , bytestring >= 0.10.0.2 && < 0.11
+                , containers >= 0.5.0.0 && < 0.6
+                , directory >= 1.2.0.1 && < 1.4
+                , filepath >= 1.3.0.1 && < 1.5
+                , filemanip >= 0.3.6.3 && < 0.4
+                , process >= 1.1.0.2 && < 1.5
+                , process-extras >= 0.3.0 && < 0.3.4 || >= 0.4.1.3 && < 0.5 || >= 0.7.1 && < 0.8
+                , regex-tdfa >= 1.2.0 && < 1.3
+                , regex-tdfa-text >= 1.0.0.3 && < 1.1
+                , tasty >= 0.10 && < 0.12
+                , tasty-silver >= 3.1.8 && < 3.2
+                , temporary >= 1.2.0.3 && < 1.3
+                , text >= 0.11.3.1 && < 1.3
+  if impl(ghc < 7.8)
+    -- provide System.Environment.setEnv for pre-GHC7.6
+    build-depends:  setenv >= 0.1.1.3 && < 0.2
+
+
+  -- we use the CPP processor to conditionally enable the UHC specific compiler tests.
+  cpp-options:    -DUHC_BACKEND
+
+  ghc-options:      -threaded
+                    -Wall
+                    -fwarn-identities
+                    -fno-warn-unused-imports
+                    -Werror
+
+  if impl(ghc < 8.0)
+    ghc-options: -fwarn-missing-local-sigs
+  else
+    ghc-options: -Wmissing-local-signatures
+  default-language: Haskell2010
+

@@ -1,0 +1,4 @@
+TestOptions
+  { forCompilers   = []
+  , runtimeOptions = ["+RTS", "-M100M"]
+  , executeProg    = True }
